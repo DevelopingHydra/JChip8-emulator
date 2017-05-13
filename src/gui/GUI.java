@@ -3,6 +3,8 @@ package gui;
 import emulator.GameManager;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -15,18 +17,19 @@ import java.util.Observer;
  */
 public class GUI extends JFrame implements Observer {
     private Canvas pCanvas;
-    private JPanel pEditor,pOutputLeft, pRegisterOutput, pEditorHexOutput, pEditorHexControls;
+    private JPanel pEditor, pOutputLeft/*, pRegisterOutput*/, pEditorHexOutput, pEditorHexControls, pSpeed;
     private JTextArea taEditor, taOutput;
     private JButton btExecuteCode, btEmulateOneCycle, btPlayPause, btHexSet;
     private JMenuBar toolbar;
     private JMenu menuFile, menuGame, menuEmulator;
-    private JMenuItem miExit, miLoadGame, miNewGame, miOpenEditor, miClearDisplay, miOptions;
+    private JMenuItem miExit, miLoadGame, miNewGame, miClearEmulator, miOpenEditor, miClearDisplay, miOptions;
     private TableModelMemory tablemodelMemory;
     private TableRendererMemory tableRendererMemory;
     private JTable tableMemory;
     private JScrollPane scrollpaneMemory;
-    private JLabel laHexFrom, laHexTo;
-    private JTextField tfHexFrom, tfHexTo;
+    private JLabel laHexFrom, laHexTo, laSpeed;
+    private JTextField tfHexFrom, tfHexTo, tfSpeedOutput;
+    private JSlider sliderSpeed;
 
     private GameManager gameManager;
 
@@ -39,15 +42,15 @@ public class GUI extends JFrame implements Observer {
     private void initComponents() {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setLayout(new BorderLayout());
-        this.setSize(500, 500);
+        this.setSize(1000, 500);
         this.setLocationRelativeTo(null);
 
         // initialization
         pCanvas = new Canvas();
 
-        pOutputLeft=new JPanel(new BorderLayout());
+        pOutputLeft = new JPanel(new BorderLayout());
 
-        pRegisterOutput = new JPanel(new BorderLayout());
+//        pRegisterOutput = new JPanel(new BorderLayout());
         taOutput = new JTextArea();
 
         pEditor = new JPanel(new BorderLayout());
@@ -75,10 +78,16 @@ public class GUI extends JFrame implements Observer {
         miExit = new JMenuItem("Exit");
         miLoadGame = new JMenuItem("Load Game");
         miNewGame = new JMenuItem("New Game");
+        miClearEmulator = new JMenuItem("Clear emulator");
         miOpenEditor = new JMenuItem("Open Editor");
         miClearDisplay = new JMenuItem("Clear display");
         miOptions = new JMenuItem("Options --> reset keybindings");
         btPlayPause = new JButton("Start");
+
+        pSpeed = new JPanel(new GridLayout());
+        sliderSpeed = new JSlider();
+        tfSpeedOutput = new JTextField("60 Hz");
+        laSpeed = new JLabel("Refresh speed");
 
         // listeners
         miExit.addActionListener(new ActionListener() {
@@ -91,15 +100,22 @@ public class GUI extends JFrame implements Observer {
         miLoadGame.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                loadGame();
+                onLoadGame();
             }
         });
 
         miNewGame.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                loadGame();
-                startGame();
+                onLoadGame();
+                onStartGame();
+            }
+        });
+
+        miClearEmulator.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                gameManager.resetEmulator();
             }
         });
 
@@ -148,6 +164,11 @@ public class GUI extends JFrame implements Observer {
         pCanvas.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent keyEvent) {
+                gameManager.onKeyReleased(keyEvent);
+            }
+
+            @Override
+            public void keyPressed(KeyEvent keyEvent) {
                 gameManager.onKeyPressed(keyEvent);
             }
         });
@@ -189,6 +210,17 @@ public class GUI extends JFrame implements Observer {
             }
         });
 
+        sliderSpeed.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                if (gameManager != null) {
+                    // gamemanager not yet initialized ...
+                    tfSpeedOutput.setText(sliderSpeed.getValue() + " Hz");
+                    gameManager.setSleepTime(1000 / sliderSpeed.getValue());
+                }
+            }
+        });
+
         // settings
         pEditor.setVisible(false);
         pEditor.setBorder(BorderFactory.createTitledBorder("One opcode per line"));
@@ -205,12 +237,20 @@ public class GUI extends JFrame implements Observer {
 
         btPlayPause.setFocusable(false);
 
+        sliderSpeed.setMinimum(10);
+        sliderSpeed.setMaximum(60 * 5); // max 5 times original speed
+        sliderSpeed.setValue(60);
+        sliderSpeed.setMajorTickSpacing(50);
+        sliderSpeed.setPaintTicks(true);
+        sliderSpeed.setPaintLabels(true);
+
         // setter
         menuEmulator.add(miOptions);
         menuEmulator.add(miOpenEditor);
         menuEmulator.add(miClearDisplay);
         menuGame.add(miNewGame);
         menuGame.add(miLoadGame);
+        menuGame.add(miClearEmulator);
         menuFile.add(miExit);
         toolbar.add(menuFile);
         toolbar.add(menuGame);
@@ -233,9 +273,14 @@ public class GUI extends JFrame implements Observer {
         pEditorHexControls.add(tfHexTo);
         pEditorHexControls.add(btHexSet);
         pEditorHexOutput.add(pEditorHexControls, BorderLayout.SOUTH);
-        pOutputLeft.add(pEditorHexOutput,BorderLayout.CENTER);
+        pOutputLeft.add(pEditorHexOutput, BorderLayout.CENTER);
 
         pOutputLeft.add(taOutput, BorderLayout.EAST);
+
+        pSpeed.add(laSpeed);
+        pSpeed.add(sliderSpeed);
+        pSpeed.add(tfSpeedOutput);
+        this.add(pSpeed, BorderLayout.SOUTH);
 
         this.add(pOutputLeft, BorderLayout.WEST);
 
@@ -301,12 +346,12 @@ public class GUI extends JFrame implements Observer {
     /**
      * only public during testing
      */
-    public void startGame() {
+    public void onStartGame() {
         gameManager.startGame();
         btPlayPause.setText("Playing |>");
     }
 
-    private void loadGame() {
+    private void onLoadGame() {
         JFileChooser fc = new JFileChooser();
         fc.setCurrentDirectory(new File(System.getProperty("user.dir") + File.separator + "src" + File.separator + "c8games"));
         int retValue = fc.showDialog(null, "Load game");
@@ -325,10 +370,11 @@ public class GUI extends JFrame implements Observer {
 
     /**
      * Should only be used for testing ...
+     * todo remove in beta
      *
      * @param filepath
      */
-    public void loadGame(String filepath) {
+    public void onLoadGame(String filepath) {
         try {
             gameManager.loadGame(filepath);
             tablemodelMemory.setMemory(gameManager.getMemory());
@@ -338,6 +384,12 @@ public class GUI extends JFrame implements Observer {
         }
     }
 
+    /**
+     * only for testing
+     * todo remove in beta
+     *
+     * @return
+     */
     public Canvas getCanvasPanel() {
         return pCanvas;
     }

@@ -3,13 +3,12 @@ package main;
 import gui.GUI;
 
 import java.io.*;
-import java.util.Properties;
 
 /**
  * Created by xeniu on 02.04.2017.
  */
 public class Main {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
 //        if (true) return;
 
@@ -18,11 +17,21 @@ public class Main {
 //        testLoadGame(gui);
     }
 
+    /**
+     * todo remove in beta
+     *
+     * @param gui
+     */
     private static void testLoadGame(GUI gui) {
-        gui.loadGame(System.getProperty("user.dir") + File.separator + "src" + File.separator + "c8games" + File.separator + "PONG");
-        gui.startGame();
+        gui.onLoadGame(System.getProperty("user.dir") + File.separator + "src" + File.separator + "c8games" + File.separator + "PONG");
+        gui.onStartGame();
     }
 
+    /**
+     * todo remove in beta
+     *
+     * @param gui
+     */
     private static void testCanvas(GUI gui) {
         int[][] c = new int[64][32];
         c[0][0] = 1;
@@ -34,6 +43,6 @@ public class Main {
         c[63][0] = 1;
         c[0][31] = 1;
 
-        gui.getCanvasPanel().setCanvas(c);
+//        gui.getCanvasPanel().setCanvas(c);
     }
 }

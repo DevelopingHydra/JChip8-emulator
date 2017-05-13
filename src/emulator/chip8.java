@@ -48,7 +48,7 @@ public class chip8 extends Observable {
                     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
             };
 
-    public chip8(Canvas canvas) {
+    public chip8() {
         this.V = new int[16];
         this.memory = new int[4096];
         this.stack = new int[16];
@@ -513,13 +513,15 @@ public class chip8 extends Observable {
     }
 
     public void setKeyPressed(char key) {
-        System.out.println("key pressed:\t" + key);
-        // reset all other keys
-        for (int i = 0; i < this.key.length; i++) {
-            this.key[i] = 0;
-        }
+//        System.out.println("key pressed:\t" + key);
         // converts the char to string and then to int :)
         this.key[Integer.parseInt(key + "", 16)] = 1;
+    }
+
+    public void setKeyReleased(char key) {
+//        System.out.println("key released:\t" + key);
+        // converts the char to string and then to int :)
+        this.key[Integer.parseInt(key + "", 16)] = 0;
     }
 
     public void loadGame(String filepath) throws IOException {
@@ -548,7 +550,7 @@ public class chip8 extends Observable {
 
     public void reset() {
         this.V = new int[16];
-//        this.memory = new byte[4096]; // we do not want to empty the memory, because we may have loaded a game into it
+        this.memory = new int[4096]; // we do not want to empty the memory, because we may have loaded a game into it
         this.stack = new int[16];
         this.key = new char[16];
         this.canvas = new int[32][64];
@@ -558,6 +560,17 @@ public class chip8 extends Observable {
         this.sp = 0;
         this.pc = 0x200;
         this.I = 0;
+
+        // notify observers
+        setChanged();
+        notifyObservers();
+    }
+
+
+    public void resetExceptMemory() {
+        int[] tmpMemory = this.memory;
+        this.reset();
+        this.memory = tmpMemory;
     }
 
     public boolean isDrawFlagSet() {
@@ -574,6 +587,7 @@ public class chip8 extends Observable {
 
     /**
      * for testing
+     * todo remove in beta
      */
     public void outputMemory() {
         for (int i = 0x200; i < 0x2FF; i++) {
@@ -584,6 +598,7 @@ public class chip8 extends Observable {
     }
 
     /**
+     * todo remove in beta
      * for testing/ide only
      */
     public String outputRegisters() {
@@ -628,4 +643,35 @@ public class chip8 extends Observable {
     public void setMemory(int[] memory) {
         this.memory = memory;
     }
+
+    /**
+     * todo remove in beta, because was replaced with Integer.parseInt(key, 16)
+     *
+     * @param key
+     * @return
+     */
+    private int keyCharToInt(char key) {
+        try {
+            return Integer.parseInt(key + "");
+        } catch (java.lang.NumberFormatException e) {
+            switch ((key + "").toUpperCase().charAt(0)) {
+                case 'A':
+                    return 10;
+                case 'B':
+                    return 11;
+                case 'C':
+                    return 12;
+                case 'D':
+                    return 13;
+                case 'E':
+                    return 14;
+                case 'F':
+                    return 15;
+                default:
+                    System.err.println("Key not recognised!");
+                    throw new java.lang.NumberFormatException("Key not recognised");
+            }
+        }
+    }
+
 }

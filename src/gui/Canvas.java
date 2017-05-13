@@ -24,6 +24,10 @@ public class Canvas extends JPanel {
     }
 
 
+    public void resetCanvas() {
+        this.canvas = new int[WIDTH][HEIGHT];
+    }
+
     @Override
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
@@ -68,10 +72,6 @@ public class Canvas extends JPanel {
         System.out.println();
     }
 
-
-    public void resetCanvas() {
-        this.canvas = new int[WIDTH][HEIGHT];
-    }
 
     public void setCanvas(int[][] canvas) {
         this.canvas = canvas;

@@ -24,7 +24,7 @@ public class GameManager implements Runnable {
 
     public GameManager(Canvas canvas) {
         this.canvas = canvas;
-        this.emulator = new chip8(canvas);
+        this.emulator = new chip8();
         this.keybindings = new HashMap<>();
         this.sleepTime = 1000 / 60; // 60Hz
         this.isSuspended = false;
@@ -49,10 +49,18 @@ public class GameManager implements Runnable {
         }
     }
 
+    public void onKeyReleased(KeyEvent keyEvent) {
+        char key = keyEvent.getKeyChar();
+        if (this.keybindings.containsKey(key + "")) {
+            char emulatedKey = this.keybindings.get(key + "").charAt(0);
+            emulator.setKeyReleased(emulatedKey);
+        }
+    }
+
     public void startGame() {
         System.out.println("STARTING GAME");
         // reset the emulator state
-        emulator.reset();
+        emulator.resetExceptMemory();
         this.isSuspended = false;
         ownThread = new Thread(this);
         ownThread.start();
@@ -99,7 +107,7 @@ public class GameManager implements Runnable {
     }
 
     public void loadGame(String file) throws IOException {
-        emulator.reset();
+        resetEmulator();
         emulator.loadGame(file);
         loadKeybindings();
     }
@@ -185,5 +193,14 @@ public class GameManager implements Runnable {
 
     public boolean hasStarted() {
         return ownThread != null && !ownThread.isInterrupted();
+    }
+
+    public void setSleepTime(int sleepTime) {
+        this.sleepTime = sleepTime;
+    }
+
+    public void resetEmulator()
+    {
+        emulator.reset();
     }
 }
