@@ -1,0 +1,54 @@
+---------- registers
+16 8-bit registers (V0, .. VF)
+one 16 bit register called I; usually used to store memory addresses --> the lowest (rightmost) 12 bits are usually used
+
+---------- memory
+the memory is 4 KB (4.096 bytes) from 0x000 (0) to 0xFFF (4095)
+the first 512 (0x000 - 0x1FF) bytes is where the interpreter is located and should not be used by games
+most games start at 0x200 (512) and some begin at 0x600 (1536)
+
+VF should not be used by programs, because its used as a flag
+
+there are also 2 8-bit registers for timers, which decrement at 60Hz (60 times per second)
+
+There are also pseudo-registers
+PC --> program counter (16-bit); stores the currently executing address
+SP --> stack pointer (8-bit); points at the topmost level of the stack
+
+the stack is an array of 16 16-bit values, used to store the address that the interpreter should return to when finished with a subroutine
+therefore chip-8 allows for up to 16 levels of nested subroutines
+
+---------- timers & sound
+one for sound, one for delaying things
+both times operate at 60 Hz (they decrement 60 times per second)
+when reaching 0 they deactivate
+
+the sound-timer (ST) --> outputs a peep if its value is greater than 0
+the delay-timer (DT)
+
+---------- GRAHPICS
+64 x 32 pixel
+graphics are drawn as 8 x 1 .. 15 pixel sprites
+
+origin is upper left corner (0,0)
+x is calculated by mod 64 (0 to 63)
+y is calculated by mod 32 (0 to 31)
+
+all drawings are in XOR mode
+when one or more pixels are erased while a sprite is drawn, the VF register is setr to 01, otherwise 00
+
+characters are 8 x 5 pixels (5 bytes)
+Available letters are 0-9 and A-F
+
+--------- input
+hexadecimal keyboard
+(16 keys --> 0-9 and A-F)
+
+--------- instructions
+CHIP-8 had 36 different instructions including math, graphics and flow control functions
+Super CHIP-8 added additional 10 instrauctions
+
+All instructions are 2 bytes long and are stored most-significant-byte first
+In memory, the first byte of each instruction should be located at an even address
+If a program includes sprites data, it should be padded so any following instructions will be properly situated
+

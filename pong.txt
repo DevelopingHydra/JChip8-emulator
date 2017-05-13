@@ -1,0 +1,7 @@
+6A02 --> Speichere "02" in V[A]
+6B0C --> Speichere "0C" in V[B]
+6C3F --> Speichere "3F" in V[C]
+6D0C --> Speichere "0C" in V[D]
+A2EA --> Setzt I zur Adresse "2EA"
+DAB6 --> Zeichne ein Sprite. 6 Zeilen. X = 2. Y = 12
+DCD6 --> Zeichne ein Sprite. 6 Zeilen. X = 63. Y = 12

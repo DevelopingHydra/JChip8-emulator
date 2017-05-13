@@ -1,0 +1,5 @@
+java has no unsigned integer
+char --> 16-bit unsigned
+long --> 64-bit unsigned
+byte --> 8-bit signed
+short --> 16-bit signed
