@@ -9,6 +9,7 @@ import java.util.Observer;
  * Created by xeniu on 07.04.2017.
  */
 public class TableModelMemory extends AbstractTableModel implements TableModelListener {
+
     private final String[] columns = new String[]{"~ row ~", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"};
     private int[] memory;
     private int fromMemory, toMemory;
@@ -27,7 +28,7 @@ public class TableModelMemory extends AbstractTableModel implements TableModelLi
 
     @Override
     public int getRowCount() {
-        return (toMemory - fromMemory)/16+1;
+        return (toMemory - fromMemory) / 16 + 1;
     }
 
     @Override
@@ -62,15 +63,10 @@ public class TableModelMemory extends AbstractTableModel implements TableModelLi
         return col > 0;
     }
 
-    public void setValueAt(Object value, int row, int col) {
-        try {
-            int v = Integer.parseInt((String) value, 16);
-            memory[fromMemory + row * 16 + col - 1] = v & 0xFF;
-            fireTableCellUpdated(row, col);
-        } catch (java.lang.NumberFormatException e) {
-            // nothing
-            System.err.println("Unable to change table-cell to that value:\t" + value);
-        }
+    public void setValueAt(Object value, int row, int col) throws NumberFormatException {
+        int v = Integer.parseInt((String) value, 16);
+        memory[fromMemory + row * 16 + col - 1] = v & 0xFF;
+        fireTableCellUpdated(row, col);
     }
 
     public void setRange(int from, int to) {

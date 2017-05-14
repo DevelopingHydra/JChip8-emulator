@@ -1,5 +1,6 @@
 package emulator;
 
+import exception.EmulatorException;
 import gui.Canvas;
 
 import java.awt.event.KeyEvent;
@@ -11,29 +12,27 @@ import java.util.Properties;
  * Created by xeniu on 02.04.2017.
  */
 public class GameManager implements Runnable {
-    private chip8 emulator;
-    private Canvas canvas;
+
+    private Chip8 emulator;
+    // private Canvas canvas;
     private HashMap<String, String> keybindings;
     private int sleepTime;
     private boolean isSuspended;
     private Thread ownThread;
 
     private final File configFile = new File(
-            System.getProperty("user.dir") + File.separator + "src" +
-                    File.separator + "config" + File.separator + "keybinding.conf");
+            System.getProperty("user.dir") + File.separator + "src"
+            + File.separator + "config" + File.separator + "keybinding.conf");
 
-    public GameManager(Canvas canvas) {
-        this.canvas = canvas;
-        this.emulator = new chip8();
+    public GameManager() throws IOException {
+        this.emulator = new Chip8();
         this.keybindings = new HashMap<>();
         this.sleepTime = 1000 / 60; // 60Hz
-        this.isSuspended = false;
-
-        try {
-            loadKeybindings();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.isSuspended = false; 
+         
+        
+        loadKeybindings();
+       
     }
 
     /**
@@ -58,7 +57,7 @@ public class GameManager implements Runnable {
     }
 
     public void startGame() {
-        System.out.println("STARTING GAME");
+    //    System.out.println("STARTING GAME");
         // reset the emulator state
         emulator.resetExceptMemory();
         this.isSuspended = false;
@@ -89,30 +88,30 @@ public class GameManager implements Runnable {
 
     public void emulateOneCycle() {
         emulator.emulateCycle();
-        if (emulator.isDrawFlagSet()) {
-            canvas.setCanvas(emulator.getCanvas());
-        }
+//        if (emulator.isDrawFlagSet()) {
+//            canvas.setCanvas(emulator.getCanvas());
+//        }
     }
 
     public void emulateOpcode(int opcode) {
         emulator.setOpcode(opcode);
         emulator.executeOpCode();
-        if (emulator.isDrawFlagSet()) {
-            canvas.setCanvas(emulator.getCanvas());
-        }
+//        if (emulator.isDrawFlagSet()) {
+//            canvas.setCanvas(emulator.getCanvas());
+//        }
     }
 
     public String getOutputString() {
-        return emulator.outputRegisters();
+        return emulator.registersToString();
     }
 
-    public void loadGame(String file) throws IOException {
-        resetEmulator();
+    public void loadGame(String file) throws IOException, EmulatorException {
+        emulator.reset();
         emulator.loadGame(file);
         loadKeybindings();
     }
 
-    public void loadKeybindings() throws IOException {
+    private void loadKeybindings() throws IOException {
         Properties defaultProps = new Properties();
         FileInputStream in = new FileInputStream(configFile);
         defaultProps.load(in);
@@ -166,17 +165,17 @@ public class GameManager implements Runnable {
         out.close();
     }
 
-    public chip8 getEmulator() {
+    public Chip8 getEmulator() {
         return emulator;
     }
 
-    public int[] getMemory() {
-        return emulator.getMemory();
-    }
+//    public int[] getMemory() {
+//        return emulator.getMemory();
+//    }
 
-    public void setMemory(int[] memory) {
-        emulator.setMemory(memory);
-    }
+//    public void setMemory(int[] memory) {
+//        emulator.setMemory(memory);
+//    }
 
     public synchronized void play() {
         this.isSuspended = false;
@@ -199,8 +198,7 @@ public class GameManager implements Runnable {
         this.sleepTime = sleepTime;
     }
 
-    public void resetEmulator()
-    {
-        emulator.reset();
-    }
+//    public void resetEmulator() {
+//        emulator.reset();
+//    }
 }

@@ -1,6 +1,7 @@
 package gui;
 
 import emulator.GameManager;
+import exception.EmulatorException;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -11,13 +12,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by xeniu on 02.04.2017.
  */
 public class GUI extends JFrame implements Observer {
+
     private Canvas pCanvas;
-    private JPanel pEditor, pOutputLeft/*, pRegisterOutput*/, pEditorHexOutput, pEditorHexControls, pSpeed;
+    private JPanel pEditor, pOutputLeft, pEditorHexOutput, pEditorHexControls, pSpeed;
     private JTextArea taEditor, taOutput;
     private JButton btExecuteCode, btEmulateOneCycle, btPlayPause, btHexSet;
     private JMenuBar toolbar;
@@ -28,15 +32,21 @@ public class GUI extends JFrame implements Observer {
     private JTable tableMemory;
     private JScrollPane scrollpaneMemory;
     private JLabel laHexFrom, laHexTo, laSpeed;
-    private JTextField tfHexFrom, tfHexTo, tfSpeedOutput;
+    private JTextField tfHexFrom, tfHexTo, tfSpeedOutput; // todo change tfSpeedOUtput to label
     private JSlider sliderSpeed;
 
     private GameManager gameManager;
 
-    public GUI() throws HeadlessException {
+    public GUI() {
         initComponents();
-        gameManager = new GameManager(this.pCanvas);
-        gameManager.getEmulator().addObserver(this);
+        try {
+            gameManager = new GameManager();
+            gameManager.getEmulator().addObserver(this);
+        } catch (IOException e) {
+            System.err.println("Init failed");
+            System.exit(14);
+        }
+
     }
 
     private void initComponents() {
@@ -50,7 +60,6 @@ public class GUI extends JFrame implements Observer {
 
         pOutputLeft = new JPanel(new BorderLayout());
 
-//        pRegisterOutput = new JPanel(new BorderLayout());
         taOutput = new JTextArea();
 
         pEditor = new JPanel(new BorderLayout());
@@ -115,7 +124,7 @@ public class GUI extends JFrame implements Observer {
         miClearEmulator.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                gameManager.resetEmulator();
+                gameManager.getEmulator().reset();
             }
         });
 
@@ -364,29 +373,36 @@ public class GUI extends JFrame implements Observer {
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(null, "Cannot load file", "File IO exception", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
+            } catch (EmulatorException ex) {
+                printEmulatorErrorMsg(ex);
             }
         }
     }
 
+    private void printEmulatorErrorMsg(EmulatorException ex) {
+        JOptionPane.showMessageDialog(null, ex.getMessage(), "Emulator exception", JOptionPane.ERROR_MESSAGE);
+        ex.printStackTrace();
+    }
+
     /**
-     * Should only be used for testing ...
-     * todo remove in beta
+     * Should only be used for testing ... todo remove in beta
      *
      * @param filepath
      */
     public void onLoadGame(String filepath) {
         try {
             gameManager.loadGame(filepath);
-            tablemodelMemory.setMemory(gameManager.getMemory());
-        } catch (IOException e) {
+            tablemodelMemory.setMemory(gameManager.getEmulator().getMemory());
+        } catch (EmulatorException ex) {
+            printEmulatorErrorMsg(ex);
+        } catch (IOException ex2) {
             JOptionPane.showMessageDialog(null, "Cannot load file", "File IO exception", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
+            ex2.printStackTrace();
         }
     }
 
     /**
-     * only for testing
-     * todo remove in beta
+     * only for testing todo remove in beta
      *
      * @return
      */
@@ -396,14 +412,19 @@ public class GUI extends JFrame implements Observer {
 
     @Override
     public void update(Observable observable, Object o) {
+        // check if we have to draw something
+        if (gameManager.getEmulator().isDrawFlagSet()) {
+            this.pCanvas.setCanvas(gameManager.getEmulator().getCanvas());
+        }
+
         // set the simple registers and stuff
         taOutput.setText(gameManager.getOutputString());
         // output the memory
-        tablemodelMemory.setMemory(gameManager.getMemory());
+        tablemodelMemory.setMemory(gameManager.getEmulator().getMemory());
         tablemodelMemory.fireTableDataChanged();
     }
 
     public void updateMemory(int[] memory) {
-        gameManager.setMemory(memory);
+        gameManager.getEmulator().setMemory(memory);
     }
 }
