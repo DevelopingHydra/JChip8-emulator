@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Random;
 
 /**
  * Created by xeniu on 02.04.2017.
@@ -11,6 +12,8 @@ import java.awt.event.KeyEvent;
 public class Canvas extends JPanel {
     private static final int WIDTH = 64, HEIGHT = 32;
     private Color bgColor, drawColor;
+    private boolean isEyesoreModeOn = false;
+    private Random randy;
 
     private int[][] canvas;
 
@@ -18,6 +21,8 @@ public class Canvas extends JPanel {
         canvas = new int[HEIGHT][WIDTH];
         bgColor = Color.WHITE;
         drawColor = Color.BLACK;
+
+        randy = new Random();
 
         this.setFocusable(true);
         this.setRequestFocusEnabled(true);
@@ -33,8 +38,13 @@ public class Canvas extends JPanel {
         super.paintComponent(graphics);
 
 //        printCanvas();
+//        System.out.println("print canvas");
 
-        graphics.setColor(bgColor);
+        if (isEyesoreModeOn) {
+            graphics.setColor(new Color(randy.nextInt(255), randy.nextInt(255), randy.nextInt(255)));
+        } else {
+            graphics.setColor(bgColor);
+        }
         graphics.fillRect(0, 0, getWidth(), getHeight());
 
         int _pixelWidth = getWidth() / WIDTH;
@@ -45,6 +55,9 @@ public class Canvas extends JPanel {
             for (int j = 0; j < canvas[i].length; j++) {
                 if (canvas[i][j] == 1) {
 //                    graphics.fillRect(i * _pixelWidth, j * _pixelHeight, _pixelWidth, _pixelHeight);
+                    if (isEyesoreModeOn) {
+                        graphics.setColor(new Color(randy.nextInt(255), randy.nextInt(255), randy.nextInt(255)));
+                    }
                     graphics.fillRect(j * _pixelWidth, i * _pixelHeight, _pixelWidth, _pixelHeight);
                 }
             }
@@ -78,10 +91,6 @@ public class Canvas extends JPanel {
         repaint();
     }
 
-    public int[][] getCanvas() {
-        return canvas;
-    }
-
     public Color getBgColor() {
         return bgColor;
     }
@@ -96,5 +105,13 @@ public class Canvas extends JPanel {
 
     public void setDrawColor(Color drawColor) {
         this.drawColor = drawColor;
+    }
+
+    public boolean isEyesoreModeOn() {
+        return isEyesoreModeOn;
+    }
+
+    public void setEyesoreMode(boolean eyesoreModeOn) {
+        isEyesoreModeOn = eyesoreModeOn;
     }
 }

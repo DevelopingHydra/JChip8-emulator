@@ -1,7 +1,9 @@
 package gui;
 
+import dal.DAL;
 import emulator.GameManager;
 import exception.EmulatorException;
+import org.omg.CORBA.INTERNAL;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -10,10 +12,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created by xeniu on 02.04.2017.
@@ -31,14 +33,15 @@ public class GUI extends JFrame implements Observer {
     private TableRendererMemory tableRendererMemory;
     private JTable tableMemory;
     private JScrollPane scrollpaneMemory;
-    private JLabel laHexFrom, laHexTo, laSpeed;
-    private JTextField tfHexFrom, tfHexTo, tfSpeedOutput; // todo change tfSpeedOUtput to label
+    private JLabel laHexFrom, laHexTo, laSpeed, laSpeedOutput;
+    private JTextField tfHexFrom, tfHexTo;
     private JSlider sliderSpeed;
 
     private GameManager gameManager;
 
     public GUI() {
         initComponents();
+
         try {
             gameManager = new GameManager();
             gameManager.getEmulator().addObserver(this);
@@ -47,6 +50,12 @@ public class GUI extends JFrame implements Observer {
             System.exit(14);
         }
 
+        try {
+            loadSettings();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Unable to load settings!", "File error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     private void initComponents() {
@@ -90,12 +99,12 @@ public class GUI extends JFrame implements Observer {
         miClearEmulator = new JMenuItem("Clear emulator");
         miOpenEditor = new JMenuItem("Open Editor");
         miClearDisplay = new JMenuItem("Clear display");
-        miOptions = new JMenuItem("Options --> reset keybindings");
+        miOptions = new JMenuItem("Options");
         btPlayPause = new JButton("Start");
 
         pSpeed = new JPanel(new GridLayout());
         sliderSpeed = new JSlider();
-        tfSpeedOutput = new JTextField("60 Hz");
+        laSpeedOutput = new JLabel("60 Hz");
         laSpeed = new JLabel("Refresh speed");
 
         // listeners
@@ -152,7 +161,7 @@ public class GUI extends JFrame implements Observer {
         miClearDisplay.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                gameManager.emulateOpcode(0x00E0);
+                onEmulateOneCycle();
             }
         });
 
@@ -224,8 +233,8 @@ public class GUI extends JFrame implements Observer {
             public void stateChanged(ChangeEvent changeEvent) {
                 if (gameManager != null) {
                     // gamemanager not yet initialized ...
-                    tfSpeedOutput.setText(sliderSpeed.getValue() + " Hz");
-                    gameManager.setSleepTime(1000 / sliderSpeed.getValue());
+                    laSpeedOutput.setText(sliderSpeed.getValue() + " Hz");
+                    gameManager.setSpeedInHz(sliderSpeed.getValue());
                 }
             }
         });
@@ -288,13 +297,23 @@ public class GUI extends JFrame implements Observer {
 
         pSpeed.add(laSpeed);
         pSpeed.add(sliderSpeed);
-        pSpeed.add(tfSpeedOutput);
+        pSpeed.add(laSpeedOutput);
         this.add(pSpeed, BorderLayout.SOUTH);
 
         this.add(pOutputLeft, BorderLayout.WEST);
 
         // after all is done set visible true
         this.setVisible(true);
+    }
+
+    private void onEmulateOneCycle() {
+
+        try {
+            gameManager.emulateOpcode(0x00E0);
+        } catch (EmulatorException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Emulator error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     private void onPlayPause() {
@@ -312,15 +331,60 @@ public class GUI extends JFrame implements Observer {
     }
 
     private void onOpenOptions() {
-        try {
-            gameManager.resetKeybindings();
-        } catch (IOException e) {
-            e.printStackTrace();
+        // pause the game
+        gameManager.pause();
+
+        // show settings dialog
+        Settings guiSettings = new Settings();
+        guiSettings.setModal(true);
+        guiSettings.setVisible(true);
+
+        if (guiSettings.isSaved()) {
+            // make the settings effective
+            try {
+                loadSettings();
+                this.pCanvas.repaint();
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null, "Unable to load settings!", "File error", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
+            }
+        }
+
+        // resume game
+        gameManager.play();
+    }
+
+    private void loadSettings() throws IOException {
+        HashMap<String, String> hmSettings = DAL.getInstance().loadSettings();
+        for (Map.Entry<String, String> entry : hmSettings.entrySet()) {
+            switch (entry.getKey()) {
+                case "color_background":
+                    this.pCanvas.setBgColor(Color.decode("#" + entry.getValue()));
+                    break;
+                case "color_foreground":
+                    this.pCanvas.setDrawColor(Color.decode("#" + entry.getValue()));
+                    break;
+                case "speed":
+                    gameManager.setSpeedInHz(Integer.parseInt(entry.getValue()));
+                    this.laSpeedOutput.setText(entry.getValue());
+                    this.sliderSpeed.setValue(Integer.parseInt(entry.getValue()));
+                    break;
+                case "mode_eyesore":
+                    this.pCanvas.setEyesoreMode(Boolean.parseBoolean(entry.getValue()));
+                    break;
+                default:
+                    System.out.println("Unknown setting found in file");
+            }
         }
     }
 
     private void emulateOneCycle() {
-        gameManager.emulateOneCycle();
+        try {
+            gameManager.emulateOneCycle();
+        } catch (EmulatorException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Emulator error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     private void executeCode() {
@@ -328,7 +392,12 @@ public class GUI extends JFrame implements Observer {
         for (String codeline : code) {
             try {
                 int opcode = Integer.decode(codeline);
-                gameManager.emulateOpcode(opcode);
+                try {
+                    gameManager.emulateOpcode(opcode);
+                } catch (EmulatorException e) {
+                    JOptionPane.showMessageDialog(null, e.getMessage(), "Emulator error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                }
             } catch (java.lang.NumberFormatException e) {
                 System.out.println("Unable to decode opcode:\t" + codeline);
             }
@@ -401,20 +470,16 @@ public class GUI extends JFrame implements Observer {
         }
     }
 
-    /**
-     * only for testing todo remove in beta
-     *
-     * @return
-     */
-    public Canvas getCanvasPanel() {
-        return pCanvas;
-    }
-
     @Override
     public void update(Observable observable, Object o) {
         // check if we have to draw something
         if (gameManager.getEmulator().isDrawFlagSet()) {
             this.pCanvas.setCanvas(gameManager.getEmulator().getCanvas());
+        }
+
+        // check if we have to make a sound
+        if (gameManager.getEmulator().isSoundFlagSet()) {
+            Toolkit.getDefaultToolkit().beep();
         }
 
         // set the simple registers and stuff
