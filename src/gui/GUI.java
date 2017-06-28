@@ -3,7 +3,6 @@ package gui;
 import dal.DAL;
 import emulator.GameManager;
 import exception.EmulatorException;
-import org.omg.CORBA.INTERNAL;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -16,6 +15,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Observer;
+
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
+import javax.sound.sampled.LineEvent.Type;
 
 /**
  * Created by xeniu on 02.04.2017.
@@ -38,6 +42,8 @@ public class GUI extends JFrame implements Observer {
     private JSlider sliderSpeed;
 
     private GameManager gameManager;
+
+    private String sound;
 
     public GUI() {
         initComponents();
@@ -63,6 +69,17 @@ public class GUI extends JFrame implements Observer {
         this.setLayout(new BorderLayout());
         this.setSize(1000, 500);
         this.setLocationRelativeTo(null);
+
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
 
         // initialization
         pCanvas = new Canvas();
@@ -104,80 +121,33 @@ public class GUI extends JFrame implements Observer {
 
         pSpeed = new JPanel(new GridLayout());
         sliderSpeed = new JSlider();
-        laSpeedOutput = new JLabel("60 Hz");
-        laSpeed = new JLabel("Refresh speed");
+        laSpeedOutput = new JLabel("60 commands per second");
+        laSpeed = new JLabel("Speed");
 
         // listeners
-        miExit.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                System.exit(1);
-            }
-        });
+        miExit.addActionListener(actionEvent -> System.exit(1));
 
-        miLoadGame.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                onLoadGame();
-            }
-        });
+        miLoadGame.addActionListener(actionEvent -> onLoadGame());
 
-        miNewGame.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                onLoadGame();
+        miNewGame.addActionListener(actionEvent -> {
+            if (onLoadGame()) {
                 onStartGame();
             }
         });
 
-        miClearEmulator.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                gameManager.getEmulator().reset();
-            }
-        });
+        miClearEmulator.addActionListener(actionEvent -> gameManager.getEmulator().reset());
 
-        miOpenEditor.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                openEditor();
-            }
-        });
+        miOpenEditor.addActionListener(actionEvent -> openEditor());
 
-        btExecuteCode.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                executeCode();
-            }
-        });
+        btExecuteCode.addActionListener(actionEvent -> executeCode());
 
-        btEmulateOneCycle.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                emulateOneCycle();
-            }
-        });
+        btEmulateOneCycle.addActionListener(actionEvent -> emulateOneCycle());
 
-        miClearDisplay.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                onEmulateOneCycle();
-            }
-        });
+        miClearDisplay.addActionListener(actionEvent -> onEmulateOneCycle());
 
-        miOptions.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                onOpenOptions();
-            }
-        });
+        miOptions.addActionListener(actionEvent -> onOpenOptions());
 
-        btPlayPause.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                onPlayPause();
-            }
-        });
+        btPlayPause.addActionListener(actionEvent -> onPlayPause());
 
         pCanvas.addKeyListener(new KeyAdapter() {
             @Override
@@ -203,13 +173,13 @@ public class GUI extends JFrame implements Observer {
             @Override
             public void focusGained(FocusEvent focusEvent) {
                 super.focusGained(focusEvent);
-                pCanvas.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                pCanvas.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
             }
 
             @Override
             public void focusLost(FocusEvent focusEvent) {
                 super.focusLost(focusEvent);
-                pCanvas.setBorder(BorderFactory.createLineBorder(Color.WHITE));
+                pCanvas.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
             }
         });
 
@@ -221,21 +191,13 @@ public class GUI extends JFrame implements Observer {
             }
         });
 
-        btHexSet.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                tablemodelMemory.setRange(Integer.decode(tfHexFrom.getText()), Integer.decode(tfHexTo.getText()));
-            }
-        });
+        btHexSet.addActionListener(actionEvent -> tablemodelMemory.setRange(Integer.decode(tfHexFrom.getText()), Integer.decode(tfHexTo.getText())));
 
-        sliderSpeed.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent changeEvent) {
-                if (gameManager != null) {
-                    // gamemanager not yet initialized ...
-                    laSpeedOutput.setText(sliderSpeed.getValue() + " Hz");
-                    gameManager.setSpeedInHz(sliderSpeed.getValue());
-                }
+        sliderSpeed.addChangeListener(changeEvent -> {
+            if (gameManager != null) {
+                // gamemanager not yet initialized ...
+                laSpeedOutput.setText(sliderSpeed.getValue() + " command per second");
+                gameManager.setSpeedInHz(sliderSpeed.getValue());
             }
         });
 
@@ -372,6 +334,9 @@ public class GUI extends JFrame implements Observer {
                 case "mode_eyesore":
                     this.pCanvas.setEyesoreMode(Boolean.parseBoolean(entry.getValue()));
                     break;
+                case "sound":
+                    this.sound = entry.getValue();
+                    break;
                 default:
                     System.out.println("Unknown setting found in file");
             }
@@ -429,7 +394,12 @@ public class GUI extends JFrame implements Observer {
         btPlayPause.setText("Playing |>");
     }
 
-    private void onLoadGame() {
+    /**
+     * Loads a game-file into memory
+     *
+     * @return true if loaded file successfully, otherwise false
+     */
+    private boolean onLoadGame() {
         JFileChooser fc = new JFileChooser();
         fc.setCurrentDirectory(new File(System.getProperty("user.dir") + File.separator + "src" + File.separator + "c8games"));
         int retValue = fc.showDialog(null, "Load game");
@@ -439,6 +409,7 @@ public class GUI extends JFrame implements Observer {
                 gameManager.loadGame(file.getAbsolutePath());
                 gameManager.pause();
                 btPlayPause.setText("Start Game |>");
+                return true;
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(null, "Cannot load file", "File IO exception", JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
@@ -446,6 +417,7 @@ public class GUI extends JFrame implements Observer {
                 printEmulatorErrorMsg(ex);
             }
         }
+        return false;
     }
 
     private void printEmulatorErrorMsg(EmulatorException ex) {
@@ -479,7 +451,7 @@ public class GUI extends JFrame implements Observer {
 
         // check if we have to make a sound
         if (gameManager.getEmulator().isSoundFlagSet()) {
-            Toolkit.getDefaultToolkit().beep();
+            playSound();
         }
 
         // set the simple registers and stuff
@@ -489,7 +461,54 @@ public class GUI extends JFrame implements Observer {
         tablemodelMemory.fireTableDataChanged();
     }
 
+    private void playSound() {
+        try {
+            playClip(new File(System.getProperty("user.dir") + File.separator + "src" + File.separator + "sounds" + File.separator + this.sound));
+        } catch (Exception e) {
+            System.err.println("Unable to play sound: '" + this.sound + "'. Playing default!");
+            Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
     public void updateMemory(int[] memory) {
         gameManager.getEmulator().setMemory(memory);
+    }
+
+    /* from https://stackoverflow.com/questions/577724/trouble-playing-wav-in-java/577926#577926 */
+    private static void playClip(File clipFile) throws IOException,
+            UnsupportedAudioFileException, LineUnavailableException, InterruptedException {
+        class AudioListener implements LineListener {
+            private boolean done = false;
+
+            @Override
+            public synchronized void update(LineEvent event) {
+                LineEvent.Type eventType = event.getType();
+                if (eventType == LineEvent.Type.STOP || eventType == LineEvent.Type.CLOSE) {
+                    done = true;
+                    notifyAll();
+                }
+            }
+
+            public synchronized void waitUntilDone() throws InterruptedException {
+                while (!done) {
+                    wait();
+                }
+            }
+        }
+        AudioListener listener = new AudioListener();
+        AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(clipFile);
+        try {
+            Clip clip = AudioSystem.getClip();
+            clip.addLineListener(listener);
+            clip.open(audioInputStream);
+            try {
+                clip.start();
+                listener.waitUntilDone();
+            } finally {
+                clip.close();
+            }
+        } finally {
+            audioInputStream.close();
+        }
     }
 }

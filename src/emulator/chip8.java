@@ -72,7 +72,7 @@ public class Chip8 extends Observable {
 
         boolean doIncreaseProgramCounter = true;
 
-        System.out.println("parsing\t" + String.format("%02X", opcode));
+//        System.out.println("parsing\t" + String.format("%02X", opcode));
         // common variables
         int _x, _y, _nn;
         boolean isKeyPressed = false;
@@ -150,8 +150,6 @@ public class Chip8 extends Observable {
                 // todo test
                 // 5XY0
                 // skips the next instruction if VX equals VY
-
-
                 if (registersV[_x] == registersV[_y]) {
                     programcounter += 2;
                 }
@@ -179,8 +177,6 @@ public class Chip8 extends Observable {
                         // todo test
                         // 8XY0
                         // Sets VX to VY
-
-
                         registersV[_x] = registersV[_y];
                         break;
                     case 0x0001:
@@ -188,8 +184,6 @@ public class Chip8 extends Observable {
                         // 8XY1
                         // Sets VX to VX OR VY
                         // VF is reset to 0
-
-
                         registersV[_x] = registersV[_x] | registersV[_y];
                         registersV[registersV.length - 1] = 0;
                         break;
@@ -198,8 +192,6 @@ public class Chip8 extends Observable {
                         // 8XY2
                         // Sets VX to VX AND VY
                         // VF is reset to 0
-
-
                         registersV[_x] = registersV[_x] & registersV[_y];
                         registersV[registersV.length - 1] = 0;
                         break;
@@ -369,7 +361,6 @@ public class Chip8 extends Observable {
                         // todo test
                         // EX9E
                         // Skips the next instruction if the key stored in VX is pressed
-
                         if (keysPressed[registersV[_x]] != 0) {
                             programcounter += 2;
                         }
@@ -378,7 +369,6 @@ public class Chip8 extends Observable {
                         // todo test
                         // EXA1
                         // Skips the next instruction if the key stored in VX is not pressed
-
                         if (keysPressed[registersV[_x]] == 0) {
                             programcounter += 2;
                         }

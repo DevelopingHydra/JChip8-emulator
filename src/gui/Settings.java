@@ -4,8 +4,6 @@ import dal.DAL;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,11 +12,12 @@ import java.util.Map;
  * Created by xeniu on 21.05.2017.
  */
 public class Settings extends JDialog {
-    private JLabel lbSpeed, lbColorBackground, lbColorForeground, lbEyeSoreMode;
+    private JLabel lbSpeed, lbColorBackground, lbColorForeground, lbEyeSoreMode, lbSound;
     private JTextField tfSpeed;
     private JCheckBox cbEyeSoreMode;
     private JPanel paBottom, paGridsettingsGame;
     private JButton btCancel, btSave, btReset, btOpenColorDialogBackroung, btOpenColorDialogForeground;
+    private JComboBox<String> cbSounds;
 
     private boolean isSaved;
     private Color cBackground, cForeground;
@@ -42,10 +41,13 @@ public class Settings extends JDialog {
         lbColorBackground = new JLabel("Background color");
         lbColorForeground = new JLabel("Foregound color");
         lbEyeSoreMode = new JLabel("Eyesore mode");
+        lbSound = new JLabel("Sound");
 
         tfSpeed = new JTextField();
 
         cbEyeSoreMode = new JCheckBox();
+
+        cbSounds = new JComboBox<>();
 
         paGridsettingsGame = new JPanel(new GridLayout(0, 2));
         paBottom = new JPanel(new GridLayout(0, 3));
@@ -70,12 +72,15 @@ public class Settings extends JDialog {
         });
 
         // settings
+        btOpenColorDialogForeground.setForeground(Color.WHITE);
 
         // adding
         paBottom.add(btCancel);
         paBottom.add(btReset);
         paBottom.add(btSave);
 
+        paGridsettingsGame.add(lbSound);
+        paGridsettingsGame.add(cbSounds);
         paGridsettingsGame.add(lbSpeed);
         paGridsettingsGame.add(tfSpeed);
         paGridsettingsGame.add(lbColorBackground);
@@ -155,6 +160,7 @@ public class Settings extends JDialog {
         } else {
             hmSettings.put("mode_eyesore", "false");
         }
+        hmSettings.put("sound", (String) cbSounds.getSelectedItem());
 
         try {
             DAL.getInstance().saveSettings(hmSettings);
@@ -172,21 +178,37 @@ public class Settings extends JDialog {
     }
 
     private void initSettings() {
+        // load sounds
+        String[] sounds = DAL.getInstance().listAvailableSoundFiles();
+        for(String s:sounds) {
+            cbSounds.addItem(s);
+        }
+
         try {
             HashMap<String, String> hmSettings = DAL.getInstance().loadSettings();
             for (Map.Entry<String, String> entry : hmSettings.entrySet()) {
                 switch (entry.getKey()) {
                     case "color_background":
                         cBackground = Color.decode("#" + entry.getValue());
+                        btOpenColorDialogBackroung.setBackground(cBackground);
                         break;
                     case "color_foreground":
                         cForeground = Color.decode("#" + entry.getValue());
+                        btOpenColorDialogForeground.setBackground(cForeground);
                         break;
                     case "speed":
                         tfSpeed.setText(entry.getValue());
                         break;
                     case "mode_eyesore":
                         cbEyeSoreMode.setSelected(Boolean.parseBoolean(entry.getValue()));
+                        break;
+                    case "sound":
+                        for (int i = 0; i < sounds.length; i++) {
+                            if (entry.getValue().equals(sounds[i])) {
+                                cbSounds.setSelectedIndex(i);
+                                break;
+                            }
+                        }
                         break;
                     default:
                         System.out.println("Unknown setting found in file");

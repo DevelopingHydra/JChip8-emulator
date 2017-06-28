@@ -2,6 +2,7 @@ package dal;
 
 import java.io.*;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Properties;
 
@@ -27,7 +28,23 @@ public class DAL {
     private final File configFile_keybindings = new File(basePath + "config" + File.separator + "keybinding.conf");
     private final File configFile_settings = new File(basePath + "config" + File.separator + "settings.conf");
 
-    public void saveSettings(HashMap<String,String> hmSettings) throws IOException {
+    public String[] listAvailableSoundFiles() {
+        File folder = new File(this.basePath + "sounds" + File.separator);
+        File[] listOfFiles = folder.listFiles();
+        LinkedList<String> filenames = new LinkedList<>();
+
+        filenames.add("system-default");
+
+        for (int i = 0; i < listOfFiles.length; i++) {
+            if (listOfFiles[i].isFile()) {
+                filenames.add(listOfFiles[i].getName());
+            }
+        }
+
+        return filenames.toArray(new String[filenames.size()]);
+    }
+
+    public void saveSettings(HashMap<String, String> hmSettings) throws IOException {
         saveHashmapToFile(configFile_settings, hmSettings);
     }
 
@@ -41,7 +58,7 @@ public class DAL {
         hmSettings.put("color_background", "FFFFFF");
         hmSettings.put("color_foreground", "000000");
         hmSettings.put("speed", "60");
-        hmSettings.put("mode_eyesore","false");
+        hmSettings.put("mode_eyesore", "false");
 
         saveHashmapToFile(configFile_settings, hmSettings);
     }
