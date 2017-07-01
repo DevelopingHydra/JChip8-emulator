@@ -2,7 +2,6 @@ package emulator;
 
 import exception.EmulatorException;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -168,8 +167,8 @@ public class Chip8 extends Observable {
                 // Adds NN to VX
                 // todo is here a carry?
 
-                // _nn = opcode & 0x00FF;
-                registersV[_x] += _nn;
+//                registersV[_x] += _nn;
+                registersV[_x] = (registersV[_x] + _nn) & 0xFF; // only care for the 8 bit
                 break;
             case 0x8000:
                 switch (opcode & 0x000F) {
@@ -343,12 +342,12 @@ public class Chip8 extends Observable {
                             if (canvas[yCoord + line][xCoord + col] == 1) {
                                 // set the flag
                                 registersV[registersV.length - 1] = 1;
-                                System.out.println("drawing on occupied tiles");
+//                                System.out.println("drawing on occupied tiles[x: "+(xCoord+col)+", y: "+(yCoord+line)+"] is a 1");
                             }
                             // draw by XORing the position
 //                            canvas[xCoord + col][yCoord + line] ^= 1;
                             canvas[yCoord + line][xCoord + col] ^= 1;
-                            System.out.println("drawing at " + (xCoord + col) + " - " + (yCoord + line));
+//                            System.out.println("drawing at " + (xCoord + col) + " - " + (yCoord + line));
                         }
                     }
                 }
@@ -373,9 +372,12 @@ public class Chip8 extends Observable {
                             programcounter += 2;
                         }
                         break;
+                    case 0xE0A0:
+                        // this opcode is not supported, but present in some games
+                        // we don´t want an exception thrown and therefore just do nothing
+                        break;
                     default:
-//                        throw new UnsupportedOperationException("Unknown opcode:\t" + String.format("%02X", opcode));
-                        throw new EmulatorException("Unkown opcode:\t" + String.format("%02X", opcode));
+                        throw new EmulatorException("Unknown opcode:\t" + String.format("%02X", opcode));
                 }
                 break;
             case 0xF000:

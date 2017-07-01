@@ -12,12 +12,15 @@ import java.util.Map;
  * Created by xeniu on 21.05.2017.
  */
 public class Settings extends JDialog {
-    private JLabel lbSpeed, lbColorBackground, lbColorForeground, lbEyeSoreMode, lbSound;
+    private JLabel lbSpeed, lbColorBackground, lbColorForeground, lbEyeSoreMode, lbSound, lbKeybindings;
     private JTextField tfSpeed;
     private JCheckBox cbEyeSoreMode;
     private JPanel paBottom, paGridsettingsGame;
-    private JButton btCancel, btSave, btReset, btOpenColorDialogBackroung, btOpenColorDialogForeground;
+    private JButton btCancel, btSave, btReset, btOpenColorDialogBackground, btOpenColorDialogForeground, btOpenKeybindingsDialog;
     private JComboBox<String> cbSounds;
+
+    private ColorDialog diaColor;
+    private KeybindingsDialog diaKeybindings;
 
     private boolean isSaved;
     private Color cBackground, cForeground;
@@ -42,6 +45,7 @@ public class Settings extends JDialog {
         lbColorForeground = new JLabel("Foregound color");
         lbEyeSoreMode = new JLabel("Eyesore mode");
         lbSound = new JLabel("Sound");
+        lbKeybindings = new JLabel("Change Keybindings");
 
         tfSpeed = new JTextField();
 
@@ -55,20 +59,41 @@ public class Settings extends JDialog {
         btCancel = new JButton("Cancel");
         btSave = new JButton("Save");
         btReset = new JButton("Reset to default");
-        btOpenColorDialogBackroung = new JButton("select color");
+        btOpenColorDialogBackground = new JButton("select color");
         btOpenColorDialogForeground = new JButton("select color");
+        btOpenKeybindingsDialog = new JButton("change keybindings");
+
+        diaColor = new ColorDialog();
+        diaKeybindings = new KeybindingsDialog();
 
         // listeners
         btCancel.addActionListener(actionEvent -> onCancel());
         btSave.addActionListener(actionEvent -> onSave());
         btReset.addActionListener(actionEvent -> onReset());
-        btOpenColorDialogBackroung.addActionListener(actionEvent -> {
-            cBackground = onOpenColorDialog();
-            if (cBackground != null) btOpenColorDialogBackroung.setBackground(cBackground);
+        btOpenColorDialogBackground.addActionListener(actionEvent -> {
+            diaColor.openColorChooser();
+            if (diaColor.isToBeSaved()) {
+                btOpenColorDialogBackground.setBackground(diaColor.getChosenColor());
+                cBackground = diaColor.getChosenColor();
+            }
         });
         btOpenColorDialogForeground.addActionListener(actionEvent -> {
-            cForeground = onOpenColorDialog();
-            if (cForeground != null) btOpenColorDialogForeground.setBackground(cForeground);
+            diaColor.openColorChooser();
+            if (diaColor.isToBeSaved()) {
+                btOpenColorDialogForeground.setBackground(diaColor.getChosenColor());
+                cForeground = diaColor.getChosenColor();
+            }
+        });
+        btOpenKeybindingsDialog.addActionListener(actionEvent -> {
+            diaKeybindings.openKeybindingsDialog();
+            if (diaKeybindings.isToBeSaved()) {
+                try {
+                    DAL.getInstance().saveKeybindings(diaKeybindings.getKeybindings());
+                } catch (IOException e) {
+                    JOptionPane.showMessageDialog(null, "Unable to save settings to file!", "File error", JOptionPane.ERROR_MESSAGE);
+                    e.printStackTrace();
+                }
+            }
         });
 
         // settings
@@ -84,52 +109,18 @@ public class Settings extends JDialog {
         paGridsettingsGame.add(lbSpeed);
         paGridsettingsGame.add(tfSpeed);
         paGridsettingsGame.add(lbColorBackground);
-        paGridsettingsGame.add(btOpenColorDialogBackroung);
+        paGridsettingsGame.add(btOpenColorDialogBackground);
         paGridsettingsGame.add(lbColorForeground);
         paGridsettingsGame.add(btOpenColorDialogForeground);
         paGridsettingsGame.add(lbEyeSoreMode);
         paGridsettingsGame.add(cbEyeSoreMode);
+        paGridsettingsGame.add(lbKeybindings);
+        paGridsettingsGame.add(btOpenKeybindingsDialog);
 
         this.add(paGridsettingsGame, BorderLayout.CENTER);
         this.add(paBottom, BorderLayout.SOUTH);
     }
 
-    private Color onOpenColorDialog() {
-        JDialog dia = new JDialog();
-        dia.setSize(400, 300);
-        dia.setLocationRelativeTo(null);
-        dia.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
-        dia.getContentPane().setLayout(new BorderLayout());
-
-        JColorChooser cc = new JColorChooser();
-
-        JPanel paBottom = new JPanel(new GridLayout(0, 2));
-        JButton btCancel = new JButton("Cancel");
-        JButton btSave = new JButton("Save");
-
-        paBottom.add(btCancel);
-        paBottom.add(btSave);
-
-        dia.add(paBottom, BorderLayout.SOUTH);
-        dia.getContentPane().add(cc, BorderLayout.CENTER);
-
-        final boolean[] isToBeSaved = {false}; // I hate to do this :(
-
-        btSave.addActionListener(actionEvent -> {
-            isToBeSaved[0] = true;
-            dia.setVisible(false);
-        });
-        btCancel.addActionListener(actionEvent -> dia.setVisible(false));
-
-        dia.setModal(true);
-        dia.setVisible(true);
-
-        // after closed
-        if (isToBeSaved[0]) {
-            return cc.getColor();
-        }
-        return null;
-    }
 
     private void onReset() {
         isSaved = true;
@@ -180,7 +171,7 @@ public class Settings extends JDialog {
     private void initSettings() {
         // load sounds
         String[] sounds = DAL.getInstance().listAvailableSoundFiles();
-        for(String s:sounds) {
+        for (String s : sounds) {
             cbSounds.addItem(s);
         }
 
@@ -190,7 +181,7 @@ public class Settings extends JDialog {
                 switch (entry.getKey()) {
                     case "color_background":
                         cBackground = Color.decode("#" + entry.getValue());
-                        btOpenColorDialogBackroung.setBackground(cBackground);
+                        btOpenColorDialogBackground.setBackground(cBackground);
                         break;
                     case "color_foreground":
                         cForeground = Color.decode("#" + entry.getValue());
@@ -234,5 +225,270 @@ public class Settings extends JDialog {
 
     public Color getcForeground() {
         return cForeground;
+    }
+}
+
+class ColorDialog extends JDialog {
+
+    private JColorChooser cc;
+    private JPanel paBottom;
+    private JButton btCancel, btSave;
+
+    private Color chosenColor;
+    private boolean isToBeSaved;
+
+    public ColorDialog() {
+        initComponents();
+    }
+
+    private void initComponents() {
+        this.setSize(400, 300);
+        this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
+        this.setLayout(new BorderLayout());
+        this.setLocationRelativeTo(null);
+        this.setModal(true);
+
+        // other components
+        paBottom = new JPanel(new GridLayout(0, 2));
+        btCancel = new JButton("Cancel");
+        btSave = new JButton("Save");
+
+        cc = new JColorChooser();
+
+        // listeners
+        btSave.addActionListener(actionEvent -> {
+            this.chosenColor = cc.getColor();
+            this.isToBeSaved = true;
+            this.setVisible(false);
+        });
+        btCancel.addActionListener(actionEvent -> {
+            this.isToBeSaved = false;
+            this.setVisible(false);
+        });
+
+        // Adding
+        paBottom.add(btCancel);
+        paBottom.add(btSave);
+
+        this.add(paBottom, BorderLayout.SOUTH);
+        this.add(cc, BorderLayout.CENTER);
+    }
+
+    public void openColorChooser() {
+        this.isToBeSaved = false;
+        this.setVisible(true);
+    }
+
+    public Color getChosenColor() {
+        return chosenColor;
+    }
+
+    public boolean isToBeSaved() {
+        return isToBeSaved;
+    }
+}
+
+class KeybindingsDialog extends JDialog {
+
+    private JPanel paBottom, paCenter, paReference, paKeybindings;
+    private JButton btCancel, btSave, btReset;
+
+    private HashMap<String, String> keybindings;
+    private boolean isToBeSaved;
+
+    public KeybindingsDialog() {
+        initComponents();
+    }
+
+    private void initComponents() {
+        this.setSize(400, 300);
+        this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
+        this.setLayout(new BorderLayout());
+        this.setLocationRelativeTo(null);
+        this.setModal(true);
+
+        // other components
+        paBottom = new JPanel(new GridLayout(0, 3));
+        paCenter = new JPanel(new GridLayout(0, 2));
+        paReference = new JPanel(new GridLayout(4, 4));
+        paKeybindings = new JPanel(new GridLayout(4, 4));
+
+        btCancel = new JButton("Cancel");
+        btSave = new JButton("Save");
+        btReset = new JButton("Reset to default");
+
+        // options
+        paReference.setBorder(BorderFactory.createTitledBorder("CHIP-8 Keyboard"));
+        paKeybindings.setBorder(BorderFactory.createTitledBorder("Emulator Keybindings"));
+
+        // listeners
+        btSave.addActionListener(actionEvent -> {
+            this.isToBeSaved = true;
+            this.setVisible(false);
+        });
+        btCancel.addActionListener(actionEvent -> {
+            this.isToBeSaved = false;
+            this.setVisible(false);
+        });
+        btReset.addActionListener(actionEvent -> {
+            try {
+                DAL.getInstance().resetKeybindings();
+                initKeybindings();
+                paKeybindings.updateUI();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        // Adding
+        paBottom.add(btCancel);
+        paBottom.add(btReset);
+        paBottom.add(btSave);
+
+        paCenter.add(paReference);
+        paCenter.add(paKeybindings);
+
+        this.add(paBottom, BorderLayout.SOUTH);
+        this.add(paCenter, BorderLayout.CENTER);
+    }
+
+    private void initKeybindings() throws IOException {
+
+        // first of all clear the panels
+        paReference.removeAll();
+        paKeybindings.removeAll();
+
+        String[] keyboard = new String[]
+                {
+                        "1", "2", "3", "C",
+                        "4", "5", "6", "D",
+                        "7", "8", "9", "E",
+                        "A", "0", "B", "F"
+                };
+
+        // init reference keyboard
+        for (String key : keyboard) {
+            JButton btn = new JButton(key);
+            btn.setEnabled(false);
+            paReference.add(btn);
+        }
+
+        keybindings = DAL.getInstance().loadKeybindings();
+
+        for (String key : keyboard) {
+            JButton btn = new JButton(keybindings.get(key.toUpperCase()));
+            btn.setEnabled(true);
+
+            btn.addActionListener(actionEvent -> {
+                KeyDialog diaKey = new KeyDialog();
+                diaKey.openKeyDialog();
+                if (diaKey.isToBeSaved()) {
+                    String newKey = diaKey.getKey();
+
+                    btn.setText(newKey);
+                    keybindings.put(key.toLowerCase(), newKey.toLowerCase());
+                }
+            });
+
+            paKeybindings.add(btn);
+        }
+
+    }
+
+    public void openKeybindingsDialog() {
+        try {
+            initKeybindings();
+            this.isToBeSaved = false;
+            this.setVisible(true);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Unable to load keybindings from file!", "File error", JOptionPane.ERROR_MESSAGE);
+            this.setVisible(false);
+            this.isToBeSaved = false;
+            e.printStackTrace();
+        }
+    }
+
+    public HashMap<String, String> getKeybindings() {
+        return keybindings;
+    }
+
+    public boolean isToBeSaved() {
+        return isToBeSaved;
+    }
+}
+
+class KeyDialog extends JDialog {
+
+    private JPanel paBottom, paCenter;
+    private JButton btCancel, btSave;
+    private JLabel lbInfo;
+    private JLabel lbOutput;
+
+    private String key;
+    private boolean isToBeSaved;
+
+    public KeyDialog() {
+        initComponents();
+    }
+
+    private void initComponents() {
+        this.setSize(100, 100);
+        this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
+        this.setLayout(new BorderLayout());
+        this.setLocationRelativeTo(null);
+        this.setModal(true);
+
+        // other components
+        paBottom = new JPanel(new GridLayout(0, 2));
+        paCenter = new JPanel(new BorderLayout());
+
+        lbInfo = new JLabel("Please press any button");
+        lbOutput = new JLabel("<press any button>");
+
+        btCancel = new JButton("Cancel");
+        btSave = new JButton("Save");
+
+        // settings
+        lbOutput.setHorizontalAlignment(JLabel.CENTER);
+
+        // listeners
+        btSave.addActionListener(actionEvent -> {
+            this.isToBeSaved = true;
+            this.setVisible(false);
+        });
+        btCancel.addActionListener(actionEvent -> {
+            this.isToBeSaved = false;
+            this.setVisible(false);
+        });
+
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+            lbOutput.setText(e.getKeyChar() + "");
+            key = e.getKeyChar() + "";
+            return false;
+        });
+
+        // Adding
+        paBottom.add(btCancel);
+        paBottom.add(btSave);
+
+        paCenter.add(lbInfo, BorderLayout.NORTH);
+        paCenter.add(lbOutput, BorderLayout.CENTER);
+
+        this.add(paBottom, BorderLayout.SOUTH);
+        this.add(paCenter, BorderLayout.CENTER);
+    }
+
+
+    public void openKeyDialog() {
+        this.isToBeSaved = false;
+        this.setVisible(true);
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public boolean isToBeSaved() {
+        return isToBeSaved;
     }
 }

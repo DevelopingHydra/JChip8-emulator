@@ -4,9 +4,9 @@ import dal.DAL;
 import exception.EmulatorException;
 
 import java.awt.event.KeyEvent;
-import java.io.*;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.Properties;
+import java.util.Map;
 
 /**
  * Created by xeniu on 02.04.2017.
@@ -41,18 +41,36 @@ public class GameManager implements Runnable {
      */
     public void onKeyPressed(KeyEvent keyEvent) {
         char key = keyEvent.getKeyChar();
-        if (this.keybindings.containsKey(key + "")) {
-            char emulatedKey = this.keybindings.get(key + "").charAt(0);
-            emulator.setKeyPressed(emulatedKey);
+        if (this.keybindings.containsValue(key + "")) {
+            // find the key to this pressed key
+            for (Map.Entry<String, String> entry : this.keybindings.entrySet()) {
+                if (entry.getValue().equals(key + "")) {
+                    emulator.setKeyPressed(entry.getKey().charAt(0));
+                    break;
+                }
+            }
         }
+//        if (this.keybindings.containsKey(key + "")) {
+//            char emulatedKey = this.keybindings.get(key + "").charAt(0);
+//            emulator.setKeyPressed(emulatedKey);
+//        }
     }
 
     public void onKeyReleased(KeyEvent keyEvent) {
         char key = keyEvent.getKeyChar();
-        if (this.keybindings.containsKey(key + "")) {
-            char emulatedKey = this.keybindings.get(key + "").charAt(0);
-            emulator.setKeyReleased(emulatedKey);
+        if (this.keybindings.containsValue(key + "")) {
+            // find the key to this pressed key
+            for (Map.Entry<String, String> entry : this.keybindings.entrySet()) {
+                if (entry.getValue().equals(key + "")) {
+                    emulator.setKeyReleased(entry.getKey().charAt(0));
+                    break;
+                }
+            }
         }
+//        if (this.keybindings.containsKey(key + "")) {
+//            char emulatedKey = this.keybindings.get(key + "").charAt(0);
+//            emulator.setKeyReleased(emulatedKey);
+//        }
     }
 
     public void startGame() {

@@ -46,7 +46,7 @@ hexadecimal keyboard
 
 --------- instructions
 CHIP-8 had 36 different instructions including math, graphics and flow control functions
-Super CHIP-8 added additional 10 instrauctions
+Super CHIP-8 added additional 10 instructions
 
 All instructions are 2 bytes long and are stored most-significant-byte first
 In memory, the first byte of each instruction should be located at an even address

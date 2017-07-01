@@ -1,6 +1,9 @@
 package dal;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -61,6 +64,10 @@ public class DAL {
         hmSettings.put("mode_eyesore", "false");
 
         saveHashmapToFile(configFile_settings, hmSettings);
+    }
+
+    public void saveKeybindings(HashMap<String, String> hmKeybindings) throws IOException {
+        saveHashmapToFile(configFile_keybindings, hmKeybindings);
     }
 
     public HashMap<String, String> loadKeybindings() throws IOException {
